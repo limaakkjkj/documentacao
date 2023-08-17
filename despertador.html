@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Despertador</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #1a1a2e;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .container {
+    background-color: #09325b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Alterado para centralizar verticalmente */
+    padding: 20px;
+    border-radius: 10px;
+    width: 60%;
+    height: 60%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  .left-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .right-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; 
+    justify-content: center; 
+  }
+  #clock {
+    font-size: 5rem;
+    margin-bottom: 20px;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+  }
+  #alarmForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    margin-left: 20px;
+  }
+
+  label {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  input[type="time"] {
+    font-size: 1.2rem;
+    padding: 10px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  input[type="time"]::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  button {
+    font-size: 1.2rem;
+    padding: 10px 20px;
+    margin-top: 10px;
+    background-color: #5f5fc4;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: calc(100% + 60px);
+    margin: 0 auto;
+  }
+  button:hover {
+    background-color: #43437a;
+  }
+  .alarm-time {
+    margin-top: 5px;
+    margin-left: 50px; /* Ajuste a margem esquerda conforme necessário */
+    cursor: pointer;
+    background-color: #ffffff;
+    color: #1a1a2e;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 200px;
+    font-size: 1.2rem;
+    text-align: center;
+  }
+  .alarm-time:hover {
+    background-color: #ff4d4d;
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+    <!-- criei um container com os botões e o relógio  -->
+    <div class="container">
+        <div class="left-section">
+            <div id="clock">00:00:00</div>
+            <div class="center-content">
+                <form id="alarmForm">
+                    <label for="alarmTime">Definir horário do alarme:</label>
+                    <input type="time" id="alarmTime"> <br>
+                    <button type="button" id="setAlarmButton">Definir Alarme</button> <br>
+                    <button type="button" id="cancelAlarmButton" disabled>Parar Alarme</button>
+                </form>
+            </div>
+        </div>
+        <div class="right-section" id="alarmTimes"></div>
+    </div>
+    
+<!-- audio do alarme -->
+<audio id="alarmSound" src="/despertador/alarme.mp4" loop></audio>
+
+<script>
+  // declarei as variáveis do hmtl no js
+  const clockElement = document.getElementById('clock');
+  const alarmForm = document.getElementById('alarmForm');
+  const setAlarmButton = document.getElementById('setAlarmButton');
+  const cancelAlarmButton = document.getElementById('cancelAlarmButton');
+  const alarmTimeInput = document.getElementById('alarmTime');
+  const alarmSound = document.getElementById('alarmSound');
+  const alarmTimesContainer = document.getElementById('alarmTimes');
+  let alarmTimeout;
+  let alarmTimes = [];
+
+  // função para definir o alarme
+  setAlarmButton.addEventListener('click', setAlarm);
+
+
+  alarmForm.addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      setAlarm();
+    }
+  });
+
+
+
+  setAlarmButton.addEventListener('click', () => {
+    const alarmTime = alarmTimeInput.value;
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+    if (alarmTime === '') {
+      alert('Por favor, defina um horário válido para o alarme.');
+      return;
+    }
+
+    alarmSound.pause();
+    alarmSound.currentTime = 0;
+
+
+    const timeDifference = new Date(`1970-01-01T${alarmTime}`) - new Date(`1970-01-01T${currentTime}`);
+    alarmTimeout = setTimeout(() => {
+      alarmSound.play();
+      cancelAlarmButton.disabled = false;
+    }, timeDifference);
+
+    alarmTimes.push(alarmTime);
+    updateAlarmTimes();
+  });
+
+
+  // cancelar o alarme adicionado
+  cancelAlarmButton.addEventListener('click', () => {
+    clearTimeout(alarmTimeout);
+    alarmSound.pause();
+    alarmSound.currentTime = 0;
+    cancelAlarmButton.disabled = true;
+  });
+
+  // atualizar relógio com o horário atualizado
+  function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const formattedTime = `${hours}:${minutes}:${seconds}`;
+    clockElement.textContent = formattedTime;
+  }
+
+  // permitir que apareça notificação
+  function showNotification(message) {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          new Notification(message);
+        }
+      });
+    }
+  }
+
+  // função para atualizar os alarmes adicionados e permitir que ao clicar neles, eles sejam cancelados
+  function updateAlarmTimes() {
+    alarmTimesContainer.innerHTML = '';
+    for (const time of alarmTimes) {
+      const alarmTimeElement = document.createElement('div');
+      alarmTimeElement.className = 'alarm-time';
+      alarmTimeElement.textContent = time;
+      alarmTimeElement.addEventListener('click', () => removeAlarmTime(time));
+      alarmTimesContainer.appendChild(alarmTimeElement);
+    }
+  }
+
+  // remove o alarme
+  function removeAlarmTime(time) {
+    const index = alarmTimes.indexOf(time);
+    if (index !== -1) {
+      alarmTimes.splice(index, 1);
+      updateAlarmTimes();
+      cancelAlarm(time);
+    }
+  }
+
+  // função para cancelar o alarme e mostra uma notificação que o alarme foi cancelado
+  function cancelAlarm(time) {
+    clearTimeout(alarmTimeout);
+    alarmSound.pause();
+    alarmSound.currentTime = 0;
+    cancelAlarmButton.disabled = true;
+    showNotification(`Alarme para ${time} cancelado.`);
+  }
+  function handleEnter(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setAlarm();
+    }
+  }
+
+  setAlarmButton.addEventListener('click', setAlarm);
+
+  // define o horário do alarme de acordo com o relógio, caso não tenha nenhum horário adicionado abrirá um alerta
+  function setAlarm() {
+    const alarmTime = alarmTimeInput.value;
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+    if (alarmTime === '') {
+      alert('Por favor, defina um horário válido para o alarme.');
+      return;
+    }
+
+    alarmSound.pause();
+    alarmSound.currentTime = 0;
+
+    const timeDifference = new Date(`1970-01-01T${alarmTime}`) - new Date(`1970-01-01T${currentTime}`);
+    alarmTimeout = setTimeout(() => {
+      alarmSound.play();
+      cancelAlarmButton.disabled = false;
+      showNotification("Alarme ativado!");
+    }, timeDifference);
+
+    alarmTimes.push(alarmTime);
+    updateAlarmTimes();
+    alert(`Alarme definido para ${alarmTime}.`);
+  }
+
+  // deixa atualizado o alarme e o relógio
+  setInterval(() => {
+    updateClock();
+    updateAlarmTimes();
+  }, 1000);
+</script>
+</body>
+</html>
